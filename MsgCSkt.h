@@ -14,6 +14,10 @@ public:
 	//偏移位置0xA0,服务器的端口号
 	int port;
 
+		
+	//偏移位置0xA4,pNode.pHeader.Item4 = 0x4 处理
+	char * Item4;
+
 	//偏移位置为0x20, 服务器主机的正式名称
 	char  * h_name;
 
@@ -21,8 +25,8 @@ public:
 	//偏移地址为0x1C4,获取服务器sockaddr的内容是否成功的标记
 	bool getfromaddrFlag;
 
-	//0x1C8 ,初始化通信句柄是否成功,0为成功
-	int check;
+	//0x1C8 ,是否退出循环标记,1为继续继续,0为退出
+	int bExit;
 
 	//偏移位置0x1AC
 	CMsgTypes * pCMsgTypes;
@@ -46,8 +50,8 @@ public:
 	// 当=0 读数据标记,当=1 写取数据标记
 	int readWriteFlag;
 
-	//0x234,有关发送缓存区的 计数器
-	bool mCount;
+	//0x234,累加器,可以写回服务器的次数,在CProcessReadData_MakeBuffer函数进行判断和叠加 TopSendBuffer节点的数目
+	int MsgiMaxWriteBack;
 
 	//0x238,连接服务是否成功的标记
 	bool mConnect;
@@ -56,21 +60,27 @@ public:
 	bool CMsgCSkt_AnalysisNodeFlag2;
 
 	//0x240,初始化为0x00
-	bool unkownObj;
+	bool item240;
 
-    //0x244,通过Socket发送的原始数据,该结构为0x00为字符串的长度,0x04为字符串的缓存区,0x8为指向下一个本结构的指针
-	char * mOverload;
+    //0x244,通过Socket发送的原始数据,该结构为0x00为字符串的长度,0x04为字符串的缓存区,0x8为指向下一个本结构的指针 指向SendBufferNode
+	SendBufferNode * TopSendBuffer;
 
+	 //0x248,通过Socket发送的原始数据,该结构为0x00为字符串的长度,0x04为字符串的缓存区,0x8为指向下一个本结构的指针 指向SendBufferNode
+	//保存和TopSendBuffer 一样
+	SendBufferNode * CurSendBuffer;
 
 	//偏移位置为0x258,是否从共享内存中读取数据,非0为从共享内存读取数据,0为Socket通信方式
 	bool mReadMapFile;
 
+	//0x25C Envent 指针,处理SendMessage 函数,调用SetEvent 发送信号
+	Event SendMessageEvent
 
 	//偏移位置为0x264,同步标记,为0,则可以对Socket进行操作,为1则不允许
 	bool criticalFlag;
 
-	//偏移位置为0x268,设置为1
+	//偏移位置为0x268,设置为1,发送消息标记,用于服务器
 	bool CMsgCSkt_AnalysisNodeFlag;
+
 
 	//偏移位置为0x270,保存CProcessReadData 的对象
 	CProcessReadData *pCProcessReadData;
@@ -83,14 +93,17 @@ public:
 
 	 //偏移位置为0x27C,保存pReadPacket 的对象
 	readPacket *pReadPacket;
+
+	///0x280 ,在SendMessage
+	int item_280;
 };
 
 
 //从Socket中获取的数据包
 struct readPacket
 {
-	//0x00
-	char * buffer=null;
+	//0x00,从Socket接收的数据是否完整,不会丢失,1为丢失,0为完整数据
+	int Integrity = 0x;
 
 	//0x04,指向第二个数据包缓存区内容地址
 	char *LeaveBuffer=null;
@@ -117,8 +130,10 @@ struct header
 	int size = 0x1C;
 	//0x04
 	int Item2=0x00;
-	//0x08
-	int Item3;
+
+	//0x08,时间戳,把当前的字符串加上时间戳
+	time TimeStamp;
+
 	//0x0c
 	int Item4=0x00;
 
@@ -126,8 +141,8 @@ struct header
 	char *  OptionalLen ;
 
 
-	//0x14
-	int Item6=0x00;
+	//0x14 类型掩码
+	int TypeMask=0x00;
 	//0x18
 	int Item7;
 }
@@ -136,20 +151,20 @@ struct header
 //0x1C 分析readPacket得到的中间包,是一个双向链表结构
 struct Node
 {
-	//0x00
-	int item1=null;
+	//0x00,初始化为0x0
+	int item1;
 
-	//0x04,指向header数据的缓存区
+	//0x04,指向header数据的缓存区,复制readPacket.pHeader的内容,和OptionalBuffer有区别
 	char * pHeader = readPacket.pHeader;
 
-	//0x08,header 当前Header额外附带的数据空间地址
+	//0x08,header 当前Header额外附带的数据空间地址,直接指向readPacket.OptionalBuffer的地址,
 	char *  OptionalBuffer = readPacket.OptionalBuffer;
 
 	//0x0C 
 	char Item4=0x00;
 
-	//偏移0x10
-	int Item5 = header.Item3;
+	//偏移0x10 数据包原始的时间戳
+	time TimeStamp = header.TimeStamp;
 
 	//偏移0x14,指向上一个Node对象的指针
 	Node *pPreNode;
@@ -157,42 +172,31 @@ struct Node
 	// 偏移0x18
 	Node *pNextNode;
 }
+struct MessageHeader
+{
+	//0x0
+	int item1;
+
+	//0x4
+	int item2;
+
+	//0x8,存储 调用Time获取当前的时间
+	int time;
 
 
-
-第一次从是socket中获取到的数据 数据长度为0x72
-00DFDD24  1C 00 00 00 00 00 00 00  DE 1C 6F 51 00 00 00 00
-00DFDD34  00 00 00 00 04 00 00 00  00 00 00 00 1C 00 00 00
-00DFDD44  00 00 00 00 DE 1C 6F 51  00 00 00 00 00 00 00 00
-00DFDD54  10 00 00 00 00 00 00 00  1C 00 00 00 02 00 00 00
-00DFDD64  1F 1D 6F 51 9C FF FF FF  1E 00 00 00 00 00 00 00
-00DFDD74  00 00 00 04 1E 00 00 00  00 00 00 00 37 04 00 00
-00DFDD84  54 00 00 00 D9 00 00 00  04 00 00 00 6C 6F 63 61
-00DFDD94  6C 00 
-
-          1C 00 00 00 00 00 00 00  DE 1C 6F 51 00 00 00 00
-          00 00 00 00 04 00 00 00  00 00 00 00 
-
-          1C 00 00 00 00 00 00 00  DE 1C 6F 51 00 00 00 00
-		  00 00 00 00 10 00 00 00  00 00 00 00
-
-		  1C 00 00 00 02 00 00 00  1F 1D 6F 51 9C FF FF FF
-		  1E 00 00 00 00 00 00 00  00 00 00 04 
-		  
-		  1E 00 00 00 00 00 00 00  37 04 00 00 54 00 00 00 
-		  D9 00 00 00 04 00 00 00  6C 6F 63 61 6C 00 
+}
 
 
 
 
-struct overload
+struct SendBufferNode
 {
 	//0x00 缓存区大小
-	int len = 0x00;
-	//0x4 缓存区指针
-	char * buf ;
-	//0x08 下一个overload结构的指针
-	overload *pNext;
+	int Size = 0x00;
+	//0x4 缓存区指针,Buf指向的空间的偏移地址0x8 为当前的时间戳
+	char * Buffer ;
+	//0x08 下一个SendBufferNode结构的指针
+	SendBufferNode *pNext;
 
 }
 
