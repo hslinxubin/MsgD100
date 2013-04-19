@@ -13,14 +13,18 @@ public:
 	
 	//偏移位置0xA0,服务器的端口号
 	int port;
-
 		
-	//偏移位置0xA4,pNode.pHeader.Item4 = 0x4 处理
-	char * Item4;
+	//偏移位置0xA4,发送给服务器的额外数据包缓存区
+	char * OptionalBuffer;
+
+	//偏移位置0x1C0,线程ThreadId
+	int   ThreadId;
 
 	//偏移位置为0x20, 服务器主机的正式名称
 	char  * h_name;
 
+	//偏移位置为0x124, AppVersion 版本号
+	char  * AppVersion;
 
 	//偏移地址为0x1C4,获取服务器sockaddr的内容是否成功的标记
 	bool getfromaddrFlag;
@@ -34,7 +38,7 @@ public:
 	//偏移位置为0x1B4,
 	int bLoadMsgTypesFlag;
 
-	//偏移位置为0x1BC,
+	//偏移位置为0x1BC,估计也是用于线程
 	int unkown;
 
 	//0x1E4,Select后,开始对数据进行操作的临界区句柄
@@ -57,7 +61,7 @@ public:
 	bool mConnect;
 
 	//0x23C
-	bool CMsgCSkt_AnalysisNodeFlag2;
+	bool AnalysisNodeFlag2;
 
 	//0x240,初始化为0x00
 	bool item240;
@@ -94,8 +98,11 @@ public:
 	 //偏移位置为0x27C,保存pReadPacket 的对象
 	readPacket *pReadPacket;
 
-	///0x280 ,在SendMessage
+	///0x280 ,在SendMessage,默认为0
 	int item_280;
+
+	//0x290,
+	int item_290;
 };
 
 
@@ -143,6 +150,7 @@ struct header
 
 	//0x14 类型掩码
 	int TypeMask=0x00;
+
 	//0x18
 	int Item7;
 }
@@ -172,22 +180,42 @@ struct Node
 	// 偏移0x18
 	Node *pNextNode;
 }
-struct MessageHeader
-{
-	//0x0
-	int item1;
-
-	//0x4
-	int item2;
-
-	//0x8,存储 调用Time获取当前的时间
-	int time;
 
 
+enum MessageType{
+  TypeMask = 0x4  //从服务器接收的消息类型,表示需要客户端发送登录包
 }
 
+struct MessageHeader
+{
+	//0x0 MessageHeader 的大小
+	//当TypeMask = 0x4 时,size = 0x1C
+	int size ;
 
+	//0x4
+	//当TypeMask = 0x4 时,item2 = 0x00
+	int item2;
 
+	//0x8,存储 调用Time获取当前的时间,客户端的时间戳   //time = 0x1C
+	//当TypeMask = 0x4 时,
+	time TimeStamp ;
+
+	//0xC
+	//当TypeMask = 0x4 时,item4 = 0x00
+	int item4;
+	
+	//0x10
+	//当TypeMask = 0x4 时,item5 = 0x104,附带额外数据包的长度
+	int OptionalLen;
+
+	//0x14,初步怀疑是发给服务器的TypeMask 掩码 
+	//当TypeMask = 0x4 时,TypeMask = 0x2
+	int TypeMask;
+
+	//0x18
+	//当TypeMask = 0x4 时,item7 = 0x00
+	int item7;
+}
 
 struct SendBufferNode
 {
