@@ -93,6 +93,8 @@ BOOL CMsgD100App::InitInstance()
 		delete pShellManager;
 	}
 
+	COleDispatchDriver::InvokeHelper.
+
 	// 由于对话框已关闭，所以将返回 FALSE 以便退出应用程序，
 	//  而不是启动应用程序的消息泵。
 	return FALSE;

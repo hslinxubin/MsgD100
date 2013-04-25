@@ -100,24 +100,32 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CConfigFile.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="ListItem.h" />
     <ClInclude Include="MsgCSkt.h" />
     <ClInclude Include="MsgD100.h" />
     <ClInclude Include="MsgD100Dlg.h" />
     <ClInclude Include="MsgTypes.h" />
+    <ClInclude Include="RequestResponse.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="UnObject.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CConfigFile.cpp" />
+    <ClCompile Include="Event.cpp" />
+    <ClCompile Include="ListItem.cpp" />
     <ClCompile Include="MsgCSkt.cpp" />
     <ClCompile Include="MsgD100.cpp" />
     <ClCompile Include="MsgD100Dlg.cpp" />
     <ClCompile Include="MsgTypes.cpp" />
+    <ClCompile Include="RequestResponse.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="UnObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MsgD100.rc" />

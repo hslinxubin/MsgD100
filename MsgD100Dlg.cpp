@@ -144,6 +144,8 @@ void CMsgD100Dlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
+
+	time_t
 }
 
 //当用户拖动最小化窗口时系统调用此函数取得光标

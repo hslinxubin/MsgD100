@@ -48,6 +48,18 @@
     <ClInclude Include="MsgCSkt.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Event.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UnObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RequestResponse.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ListItem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MsgD100.cpp">
@@ -66,6 +78,18 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MsgCSkt.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Event.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UnObject.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RequestResponse.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ListItem.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

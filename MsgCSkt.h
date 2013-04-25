@@ -6,6 +6,7 @@ class CMsgCSkt
 public:
 	CMsgCSkt(void);
 	~CMsgCSkt(void);
+	
 
 public:
 	//偏移位置为0x10,服务器sockaddr的内容
@@ -29,7 +30,7 @@ public:
 	//偏移地址为0x1C4,获取服务器sockaddr的内容是否成功的标记
 	bool getfromaddrFlag;
 
-	//0x1C8 ,是否退出循环标记,1为继续继续,0为退出
+	//0x1C8 ,是否退出循环标记,1为继续循环,0为退出
 	int bExit;
 
 	//偏移位置0x1AC
@@ -47,6 +48,10 @@ public:
 	//0x1CC,对Socket进行写操作的临界区句柄
 	CriticalSection pWriteCriticalSection;
 
+	//0x1FC,
+	CriticalSection pSendRequestWaitResponse_CriticalSection;
+
+
 	//偏移位置0x22C,与服务器连接socket
 	socket *psocket;
 	
@@ -63,8 +68,8 @@ public:
 	//0x23C
 	bool AnalysisNodeFlag2;
 
-	//0x240,初始化为0x00
-	bool item240;
+	//0x240,初始化为0x00,从服务器接收到的数据结构Node,Node.TimeStamp 设置为客户端当前的时间
+	Node *pReponseNode;
 
     //0x244,通过Socket发送的原始数据,该结构为0x00为字符串的长度,0x04为字符串的缓存区,0x8为指向下一个本结构的指针 指向SendBufferNode
 	SendBufferNode * TopSendBuffer;
@@ -72,6 +77,17 @@ public:
 	 //0x248,通过Socket发送的原始数据,该结构为0x00为字符串的长度,0x04为字符串的缓存区,0x8为指向下一个本结构的指针 指向SendBufferNode
 	//保存和TopSendBuffer 一样
 	SendBufferNode * CurSendBuffer;
+
+	//0x24C, 一个基础校验码,一个累计数,每次发送都在这个基础上加1,客户端校验码基础值
+	int ClientCheckCode;
+
+	//偏移位置为0x250,一个对象,此对象的首地址保存 此次分析校验码,以和服务器匹配,检测当前接收的数据是否合法,并有设置事件的作用
+	 RequestResponse * pManagerEvent;
+
+
+	//偏移位置为0x254,管理Event类指针
+	 Event *pEvent;
+
 
 	//偏移位置为0x258,是否从共享内存中读取数据,非0为从共享内存读取数据,0为Socket通信方式
 	bool mReadMapFile;
@@ -82,8 +98,11 @@ public:
 	//偏移位置为0x264,同步标记,为0,则可以对Socket进行操作,为1则不允许
 	bool criticalFlag;
 
-	//偏移位置为0x268,设置为1,发送消息标记,用于服务器
+	//偏移位置为0x268,设置为1,当为1时,运行发送SendMessageA
 	bool CMsgCSkt_AnalysisNodeFlag;
+
+	//偏移位置为0x26C,处理业务逻辑线程是否已经启动,1为已经启动
+	long ThreadID;
 
 
 	//偏移位置为0x270,保存CProcessReadData 的对象
@@ -135,14 +154,15 @@ struct header
 {
 	//0x00,数据包的大小,初始化内容为0x1C
 	int size = 0x1C;
-	//0x04
-	int Item2=0x00;
+
+	//0x04 应答响应类型
+	int ReponseType=0x00;
 
 	//0x08,时间戳,把当前的字符串加上时间戳
 	time TimeStamp;
 
-	//0x0c
-	int Item4=0x00;
+	//0x0c 服务器响应的校验码
+	int ReponseCheckCode=0x00;
 
 	//0x10 header头额外附带数据包的长度
 	char *  OptionalLen ;
@@ -168,8 +188,8 @@ struct Node
 	//0x08,header 当前Header额外附带的数据空间地址,直接指向readPacket.OptionalBuffer的地址,
 	char *  OptionalBuffer = readPacket.OptionalBuffer;
 
-	//0x0C 
-	char Item4=0x00;
+	//0x0C 和CMsgCSkt.0x24C有关系 初步估计是一个累计数
+	char Item4 = 0x00;
 
 	//偏移0x10 数据包原始的时间戳
 	time TimeStamp = header.TimeStamp;
@@ -194,15 +214,15 @@ struct MessageHeader
 
 	//0x4
 	//当TypeMask = 0x4 时,item2 = 0x00
-	int item2;
+	int Reponse;
 
 	//0x8,存储 调用Time获取当前的时间,客户端的时间戳   //time = 0x1C
 	//当TypeMask = 0x4 时,
 	time TimeStamp ;
 
 	//0xC
-	//当TypeMask = 0x4 时,item4 = 0x00
-	int item4;
+	//当TypeMask = 0x4 时,item4 = 0x00,客户端保存的当前校验码值
+	int ClientCheckCode;
 	
 	//0x10
 	//当TypeMask = 0x4 时,item5 = 0x104,附带额外数据包的长度
